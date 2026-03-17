@@ -3,11 +3,10 @@ using System.IO;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine.Networking;
-using Photon.Pun;
 
 namespace MusicBox
 {
-    public class MusicBoxItem : MonoBehaviourPun
+    public class MusicBoxItem : MonoBehaviour
     {
         private AudioSource audioSource;
         private List<string> songPaths = new List<string>();
@@ -16,11 +15,20 @@ namespace MusicBox
         private bool isPlaying = false;
         private Vector2 scrollPos = Vector2.zero;
 
+        void Awake()
+        {
+            MusicBoxPlugin.Log.LogInfo("MusicBoxItem Awake llamado!");
+        }
+
         void Start()
         {
             MusicBoxPlugin.Log.LogInfo("MusicBoxItem Start llamado!");
 
-            // Visual temporal - cubo rojo
+            // Eliminar mesh visual del valuable clonado
+            foreach (var r in GetComponentsInChildren<Renderer>())
+                Destroy(r);
+
+            // Cubo rojo propio
             GameObject visual = GameObject.CreatePrimitive(PrimitiveType.Cube);
             visual.transform.SetParent(transform);
             visual.transform.localPosition = Vector3.zero;
@@ -36,7 +44,6 @@ namespace MusicBox
 
         void Update()
         {
-            // Log cada pocos segundos para saber si Update corre
             if (Time.frameCount % 300 == 0)
             {
                 MusicBoxPlugin.Log.LogInfo($"[UPDATE] Vivo! showMenu={showMenu}");
@@ -44,8 +51,9 @@ namespace MusicBox
 
             if (UnityEngine.Input.GetKeyDown(UnityEngine.KeyCode.M))
             {
-                MusicBoxPlugin.Log.LogInfo("[UPDATE] M PULSADA!");
                 showMenu = !showMenu;
+                MusicBoxPlugin.Log.LogInfo($"[UPDATE] M PULSADA! showMenu={showMenu}");
+
                 if (showMenu)
                 {
                     Cursor.lockState = CursorLockMode.None;
@@ -67,6 +75,31 @@ namespace MusicBox
             MusicBoxPlugin.Log.LogInfo($"MusicBox: {songPaths.Count} canciones encontradas.");
         }
 
+        void PlayRequest(string songName)
+        {
+            // Buscar path completo por nombre
+            string foundPath = FindSongPath(songName);
+            if (foundPath != null)
+                StartCoroutine(PlaySong(foundPath));
+            else
+                MusicBoxPlugin.Log.LogInfo($"Canción no encontrada: {songName}");
+        }
+
+        void StopRequest()
+        {
+            StopSong();
+        }
+
+        string FindSongPath(string songName)
+        {
+            foreach (string path in songPaths)
+            {
+                if (Path.GetFileNameWithoutExtension(path) == songName)
+                    return path;
+            }
+            return null;
+        }
+
         void OnGUI()
         {
             if (!showMenu) return;
@@ -84,7 +117,7 @@ namespace MusicBox
                 if (GUILayout.Button(prefix + songName))
                 {
                     currentIndex = i;
-                    PlayRequest(Path.GetFileNameWithoutExtension(songPaths[i]));
+                    PlayRequest(songName);
                 }
             }
             GUILayout.EndScrollView();
@@ -92,7 +125,8 @@ namespace MusicBox
             GUILayout.Space(5);
             if (GUILayout.Button(isPlaying ? "⏹ Stop" : "▶ Play"))
             {
-                if (isPlaying) StopRequest();
+                if (isPlaying)
+                    StopRequest();
                 else if (songPaths.Count > 0)
                     PlayRequest(Path.GetFileNameWithoutExtension(songPaths[currentIndex]));
             }
@@ -106,49 +140,6 @@ namespace MusicBox
             GUILayout.EndArea();
         }
 
-        [PunRPC]
-        void RPC_PlaySong(string songName)
-        {
-            // Buscar la canción por nombre en la carpeta local de cada cliente
-            string foundPath = null;
-            foreach (string path in Directory.GetFiles(MusicBoxPlugin.SongsFolder, "*.mp3"))
-            {
-                if (Path.GetFileNameWithoutExtension(path) == songName)
-                {
-                    foundPath = path;
-                    break;
-                }
-            }
-            if (foundPath == null)
-            {
-                foreach (string path in Directory.GetFiles(MusicBoxPlugin.SongsFolder, "*.wav"))
-                {
-                    if (Path.GetFileNameWithoutExtension(path) == songName)
-                    {
-                        foundPath = path;
-                        break;
-                    }
-                }
-            }
-
-            if (foundPath != null)
-            {
-                StartCoroutine(PlaySong(foundPath));
-                MusicBoxPlugin.Log.LogInfo($"RPC: Reproduciendo {songName}");
-            }
-            else
-            {
-                MusicBoxPlugin.Log.LogInfo($"RPC: Canción no encontrada localmente: {songName}");
-            }
-        }
-
-        [PunRPC]
-        void RPC_StopSong()
-        {
-            StopSong();
-            MusicBoxPlugin.Log.LogInfo("RPC: Stop recibido");
-        }
-
         IEnumerator PlaySong(string path)
         {
             StopSong();
@@ -156,35 +147,18 @@ namespace MusicBox
             using (UnityWebRequest www = UnityWebRequestMultimedia.GetAudioClip("file:///" + path, audioType))
             {
                 yield return www.SendWebRequest();
-                AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
-                audioSource.clip = clip;
-                audioSource.Play();
-                isPlaying = true;
-            }
-        }
-
-        void PlayRequest(string songName)
-        {
-            if (PhotonNetwork.IsConnected)
-            {
-                photonView.RPC("RPC_PlaySong", RpcTarget.All, songName);
-            }
-            else
-            {
-                // Singleplayer - reproducir directamente
-                RPC_PlaySong(songName);
-            }
-        }
-
-        void StopRequest()
-        {
-            if (PhotonNetwork.IsConnected)
-            {
-                photonView.RPC("RPC_StopSong", RpcTarget.All);
-            }
-            else
-            {
-                RPC_StopSong();
+                if (www.result == UnityWebRequest.Result.Success)
+                {
+                    AudioClip clip = DownloadHandlerAudioClip.GetContent(www);
+                    audioSource.clip = clip;
+                    audioSource.Play();
+                    isPlaying = true;
+                    MusicBoxPlugin.Log.LogInfo($"Reproduciendo: {Path.GetFileNameWithoutExtension(path)}");
+                }
+                else
+                {
+                    MusicBoxPlugin.Log.LogInfo($"Error cargando canción: {www.error}");
+                }
             }
         }
 
