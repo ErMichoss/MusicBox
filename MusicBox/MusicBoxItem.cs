@@ -7,7 +7,7 @@ using UnityEngine.Networking;
 
 namespace MusicBox
 {
-    public class MusicBoxItem : MonoBehaviourPun
+    public class MusicBoxItem : MonoBehaviour
     {
         private AudioSource audioSource;
         private List<string> songPaths = new List<string>();
@@ -15,24 +15,18 @@ namespace MusicBox
         private bool showMenu = false;
         private bool isPlaying = false;
         private Vector2 scrollPos = Vector2.zero;
+        public PhotonView myView;
 
         void Awake()
         {
-            if (GameObject.Find("MusicBoxNetworkSpawner") == null)
-            {
-                GameObject spawner = new GameObject("MusicBoxNetworkSpawner");
-                spawner.AddComponent<MusicBoxNetworkSpawner>();
-                GameObject.DontDestroyOnLoad(spawner);
-
-                MusicBoxPlugin.Log.LogInfo("Spawner creado!");
-            }
             MusicBoxPlugin.Log.LogInfo("MusicBoxItem Awake llamado!");
         }
 
         void Start()
         {
             MusicBoxPlugin.Log.LogInfo("MusicBoxItem Start llamado!");
-
+            //myView = GetComponent<PhotonView>();
+            MusicBoxPlugin.Log.LogInfo($"MusicBoxItem Start - PhotonView ID: {myView?.ViewID}");
             // Eliminar mesh visual del valuable clonado
             foreach (var r in GetComponentsInChildren<Renderer>())
                 Destroy(r);
@@ -87,25 +81,17 @@ namespace MusicBox
         void PlayRequest(string songName)
         {
             if (PhotonNetwork.IsConnected && PhotonNetwork.CurrentRoom != null)
-            {
-                photonView.RPC("RPC_Play", RpcTarget.AllBuffered, songName);
-            }
-            else 
-            {
+                myView.RPC("RPC_Play", RpcTarget.All, songName);
+            else
                 RPC_Play(songName);
-            }
         }
 
         void StopRequest()
         {
             if (PhotonNetwork.IsConnected && PhotonNetwork.CurrentRoom != null)
-            {
-                photonView.RPC("RPC_Stop", RpcTarget.AllBuffered);
-            }
+                myView.RPC("RPC_Stop", RpcTarget.All);
             else
-            {
                 RPC_Stop();
-            }
         }
 
         [PunRPC]

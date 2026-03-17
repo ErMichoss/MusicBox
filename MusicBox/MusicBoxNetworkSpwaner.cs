@@ -6,25 +6,27 @@ using UnityEngine;
 
 public class MusicBoxNetworkSpawner : MonoBehaviour, IOnEventCallback
 {
+    void OnEnable()
+    {
+        PhotonNetwork.AddCallbackTarget(this);
+    }
+
+    void OnDisable()
+    {
+        PhotonNetwork.RemoveCallbackTarget(this);
+    }
+
     public void OnEvent(EventData photonEvent)
     {
         if (photonEvent.Code != 77) return;
 
         object[] data = (object[])photonEvent.CustomData;
-
         int viewID = (int)data[0];
         Vector3 pos = (Vector3)data[1];
 
+        MusicBoxPlugin.Log.LogInfo($"Evento 77 recibido! viewID={viewID}");
         SpawnLocal(pos, viewID);
-        Debug.Log("Evento recibido: " + photonEvent.Code);
     }
-
-    void OnEnable()
-    {
-        PhotonNetwork.AddCallbackTarget(this);
-        Debug.Log("Spawner activo y escuchando eventos");
-    }
-    void OnDisable() => PhotonNetwork.RemoveCallbackTarget(this);
 
     void SpawnLocal(Vector3 pos, int viewID)
     {
@@ -33,19 +35,19 @@ public class MusicBoxNetworkSpawner : MonoBehaviour, IOnEventCallback
         ValuableObject[] valuables = Resources.FindObjectsOfTypeAll<ValuableObject>();
         if (valuables.Length == 0) return;
 
-        GameObject prefab = valuables[0].gameObject;
-
-        GameObject obj = GameObject.Instantiate(prefab, pos, Quaternion.identity);
+        GameObject obj = GameObject.Instantiate(valuables[0].gameObject, pos, Quaternion.identity);
         obj.name = "MusicBoxObject";
 
-        // Limpiar
         var valuable = obj.GetComponent<ValuableObject>();
         if (valuable != null) Object.Destroy(valuable);
 
-        // 🔥 CLAVE: PhotonView
         PhotonView view = obj.AddComponent<PhotonView>();
         view.ViewID = viewID;
+        PhotonNetwork.RegisterPhotonView(view);
 
-        obj.AddComponent<MusicBoxItem>();
+        var item = obj.AddComponent<MusicBoxItem>();
+        item.myView = view; // asigna antes de que Start corra
+
+        MusicBoxPlugin.Log.LogInfo("MusicBoxObject spawneado via evento!");
     }
 }
