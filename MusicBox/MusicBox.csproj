@@ -40,6 +40,9 @@
     <Reference Include="BepInEx">
       <HintPath>libs\BepInEx.dll</HintPath>
     </Reference>
+    <Reference Include="Photon3Unity3D">
+      <HintPath>libs\Photon3Unity3D.dll</HintPath>
+    </Reference>
     <Reference Include="PhotonRealtime">
       <HintPath>libs\PhotonRealtime.dll</HintPath>
     </Reference>
@@ -80,6 +83,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="MusicBoxNetworkSpwaner.cs" />
     <Compile Include="MusicBoxItem.cs" />
     <Compile Include="MusicBoxPlugin.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

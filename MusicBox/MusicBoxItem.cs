@@ -1,12 +1,13 @@
-﻿using UnityEngine;
-using System.IO;
+﻿using Photon.Pun;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
+using UnityEngine;
 using UnityEngine.Networking;
 
 namespace MusicBox
 {
-    public class MusicBoxItem : MonoBehaviour
+    public class MusicBoxItem : MonoBehaviourPun
     {
         private AudioSource audioSource;
         private List<string> songPaths = new List<string>();
@@ -17,6 +18,14 @@ namespace MusicBox
 
         void Awake()
         {
+            if (GameObject.Find("MusicBoxNetworkSpawner") == null)
+            {
+                GameObject spawner = new GameObject("MusicBoxNetworkSpawner");
+                spawner.AddComponent<MusicBoxNetworkSpawner>();
+                GameObject.DontDestroyOnLoad(spawner);
+
+                MusicBoxPlugin.Log.LogInfo("Spawner creado!");
+            }
             MusicBoxPlugin.Log.LogInfo("MusicBoxItem Awake llamado!");
         }
 
@@ -77,16 +86,37 @@ namespace MusicBox
 
         void PlayRequest(string songName)
         {
-            // Buscar path completo por nombre
-            string foundPath = FindSongPath(songName);
-            if (foundPath != null)
-                StartCoroutine(PlaySong(foundPath));
-            else
-                MusicBoxPlugin.Log.LogInfo($"Canción no encontrada: {songName}");
+            if (PhotonNetwork.IsConnected && PhotonNetwork.CurrentRoom != null)
+            {
+                photonView.RPC("RPC_Play", RpcTarget.AllBuffered, songName);
+            }
+            else 
+            {
+                RPC_Play(songName);
+            }
         }
 
         void StopRequest()
         {
+            if (PhotonNetwork.IsConnected && PhotonNetwork.CurrentRoom != null)
+            {
+                photonView.RPC("RPC_Stop", RpcTarget.AllBuffered);
+            }
+            else
+            {
+                RPC_Stop();
+            }
+        }
+
+        [PunRPC]
+        void RPC_Play(string songName) {
+            string foundPath = FindSongPath(songName);
+            if (foundPath != null)
+                StartCoroutine(PlaySong(foundPath));
+        }
+
+        [PunRPC]
+        void RPC_Stop() {
             StopSong();
         }
 
