@@ -22,7 +22,7 @@ A BepInEx mod for R.E.P.O. that spawns a interactive music box object in every l
 2. Search for **MusicBox** and install it
 3. Drop your `.mp3` / `.wav` files into:
    ```
-   BepInEx/plugins/MusicBox/songs/
+   BepInEx/plugins/ErMichos-MusicBox/songs/
    ```
 4. Launch the game — the MusicBox will appear in every level
 
