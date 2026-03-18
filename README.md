@@ -32,11 +32,11 @@ A BepInEx mod for R.E.P.O. that spawns a interactive music box object in every l
 2. Download the latest `MusicBox.dll` from [Releases](../../releases)
 3. Place it in:
    ```
-   BepInEx/plugins/MusicBox/MusicBox.dll
+   BepInEx/plugins/ErMichos-MusicBox/MusicBox.dll
    ```
 4. Create a `songs` folder next to the DLL and add your music files:
    ```
-   BepInEx/plugins/MusicBox/songs/mysong.mp3
+   BepInEx/plugins/ErMichos-MusicBox/songs/mysong.mp3
    ```
 5. Launch the game
 
