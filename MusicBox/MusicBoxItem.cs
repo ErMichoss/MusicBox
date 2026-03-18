@@ -16,6 +16,7 @@ namespace MusicBox
         private bool isPlaying = false;
         private Vector2 scrollPos = Vector2.zero;
         public PhotonView myView;
+        private float volume = 0.8f;
 
         void Awake()
         {
@@ -41,7 +42,7 @@ namespace MusicBox
 
             audioSource = gameObject.AddComponent<AudioSource>();
             audioSource.spatialBlend = 1f;
-            audioSource.volume = 0.8f;
+            audioSource.volume = volume;
             LoadSongs();
         }
 
@@ -120,12 +121,12 @@ namespace MusicBox
         {
             if (!showMenu) return;
 
-            GUILayout.BeginArea(new Rect(Screen.width / 2 - 150, Screen.height / 2 - 200, 300, 400));
+            GUILayout.BeginArea(new Rect(Screen.width / 2 - 175, Screen.height / 2 - 250, 350, 480));
             GUILayout.BeginVertical("box");
             GUILayout.Label("🎵 MusicBox");
             GUILayout.Space(10);
 
-            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(280));
+            scrollPos = GUILayout.BeginScrollView(scrollPos, GUILayout.Height(300));
             for (int i = 0; i < songPaths.Count; i++)
             {
                 string songName = Path.GetFileNameWithoutExtension(songPaths[i]);
@@ -137,6 +138,14 @@ namespace MusicBox
                 }
             }
             GUILayout.EndScrollView();
+
+            GUILayout.Label($"🔊 Volumen: {Mathf.RoundToInt(volume * 100)}%");
+            float newVolume = GUILayout.HorizontalSlider(volume, 0f, 1f);
+            if (newVolume != volume)
+            {
+                volume = newVolume;
+                audioSource.volume = volume;
+            }
 
             GUILayout.Space(5);
             if (GUILayout.Button(isPlaying ? "⏹ Stop" : "▶ Play"))

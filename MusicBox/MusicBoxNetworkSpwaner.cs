@@ -41,12 +41,17 @@ public class MusicBoxNetworkSpawner : MonoBehaviour, IOnEventCallback
         var valuable = obj.GetComponent<ValuableObject>();
         if (valuable != null) Object.Destroy(valuable);
 
-        PhotonView view = obj.AddComponent<PhotonView>();
+        // Reutilizar el PhotonView que ya viene con el objeto clonado
+        PhotonView view = obj.GetComponent<PhotonView>();
+        if (view == null)
+            view = obj.AddComponent<PhotonView>();
+
         view.ViewID = viewID;
         PhotonNetwork.RegisterPhotonView(view);
+        MusicBoxPlugin.Log.LogInfo($"PhotonView registrado con ID: {view.ViewID}");
 
         var item = obj.AddComponent<MusicBoxItem>();
-        item.myView = view; // asigna antes de que Start corra
+        item.myView = view;
 
         MusicBoxPlugin.Log.LogInfo("MusicBoxObject spawneado via evento!");
     }
